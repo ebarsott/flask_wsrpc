@@ -1,0 +1,68 @@
+Make a web interface to a pizco served object (possibly many objects?)
+
+Browser <-> pizco communication is handled by flask-sockets (websocket)
+
+For my purposes I need support for:
+- setting config (dictionary)
+- checking when config is updated (signal?)
+- calling member functions
+- support for concurrent.futures
+
+Additional things to add would be:
+- support for general 'remote objects'
+- support for non-standard json objects
+
+This interface should support use of knockout.js observables so that:
+
+web ui change <-> javascript variable <-> websocket <-> flask <-> pizco
+
+
+An alternative is to 'ajaxify' objects directly. Making the pipeline:
+
+web ui <-> js <-> ajax <-> flask <-> object
+
+This limits connections to web protocols. Pizco is more direct.
+
+
+Data values (numbers, strings, arrays, etc) should be mapped as follows:
+
+ko.observable <-> hooks to websocket <-> flask <-> pizco
+
+Functions should be mapped as follows:
+
+wrapped js function <-> websocket <-> flask <-> pizco
+
+Objects should be mapped with ko.mapping
+
+object of ko.observables <-> hooks to websocket <-> flask <-> pizco
+
+
+As a starting point, lets handle a simple ionode that supports:
+
+1) config setting/getting [this is all through configure]
+2) configure calling
+3) function returning future calling
+
+
+this needs:
+1) mapped observable and signal handling for config
+2) remote object for function
+3) same as #2 and future support
+
+use json rpc on top of websocket protocol
+
+client     ---- server
+       startup
+connect     ->
+inspect     -> example proxy object
+js object   <- return proxy object properties, functions, etc
+
+       functions
+call method -> call proxy method in greenlet
+result      <- return result, join greenlet
+
+       signals
+reg signal  -> register for signal in greenlet
+process     <- process changed event
+process     <- process changed event
+         many ...
