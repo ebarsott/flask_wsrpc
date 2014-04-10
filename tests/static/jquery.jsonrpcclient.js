@@ -63,6 +63,7 @@
 
   /// Object <id>: { success_cb: cb, error_cb: cb }
   $.JsonRpcClient.prototype._ws_callbacks = {};
+  $.JsonRpcClient.prototype._ws_persistent_callbacks = [];
 
   /// The next JSON-RPC request id.
   $.JsonRpcClient.prototype._current_id = 1;
@@ -78,9 +79,10 @@
    *
    * @return {object} Returns the deferred object that $.ajax returns or {null} if websockets are used
    */
-  $.JsonRpcClient.prototype.call = function(method, params, success_cb, error_cb) {
+  $.JsonRpcClient.prototype.call = function(method, params, success_cb, error_cb, persist) {
     success_cb = typeof success_cb === 'function' ? success_cb : function(){};
     error_cb   = typeof error_cb   === 'function' ? error_cb   : function(){};
+    persist = persist !== undefined ? persist : false;
 
     // Construct the JSON-RPC 2.0 request.
     var request = {
@@ -93,7 +95,10 @@
     // Try making a WebSocket call.
     var socket = this.options.getSocket(this.wsOnMessage);
     if (socket !== null) {
-      this._wsCall(socket, request, success_cb, error_cb);
+      request_id = this._wsCall(socket, request, success_cb, error_cb, persist);
+      if (persist) {
+          return request_id; // only defined when persist = true
+      };
       return null;
     }
 
@@ -136,6 +141,14 @@
     });
 
     return deferred;
+  };
+
+  $.JsonRpcClient.prototype.unregister = function(id) {
+      if (this._ws_persistent_callbacks.indexOf(id) !== -1) {
+          this._ws_persistent_callbacks.splice(id, 1);
+      } else {
+          throw "Attempt to unregister[" + id + "] unknown id";
+      };
   };
 
   /**
@@ -243,7 +256,8 @@
    * @fn _wsCall
    * @memberof $.JsonRpcClient
    */
-  $.JsonRpcClient.prototype._wsCall = function(socket, request, success_cb, error_cb) {
+  $.JsonRpcClient.prototype._wsCall = function(socket, request, success_cb, error_cb, persist) {
+    persist = persist !== undefined ? persist : false;
     var request_json = $.toJSON(request);
 
     if (socket.readyState < 1) {
@@ -276,7 +290,13 @@
     // Setup callbacks.  If there is an id, this is a call and not a notify.
     if ('id' in request && typeof success_cb !== 'undefined') {
       this._ws_callbacks[request.id] = { success_cb: success_cb, error_cb: error_cb };
+      if (persist) {
+          this._ws_persistent_callbacks.push(request.id);
+      };
     }
+    if (persist) {
+        return request.id;
+    };
   };
 
   /**
@@ -309,7 +329,9 @@
         var success_cb = this._ws_callbacks[response.id].success_cb;
 
         // Delete the callback from the storage.
-        delete this._ws_callbacks[response.id];
+        if (this._ws_persistent_callbacks.indexOf(response.id) == -1) {
+            delete this._ws_callbacks[response.id];
+        };
 
         // Run callback with result as parameter.
         success_cb(response.result);
@@ -322,7 +344,9 @@
         var error_cb = this._ws_callbacks[response.id].error_cb;
 
         // Delete the callback from the storage.
-        delete this._ws_callbacks[response.id];
+        if (this._ws_persistent_callbacks.indexOf(response.id) == -1) {
+            delete this._ws_callbacks[response.id];
+        };
 
         // Run callback with the error object as parameter.
         error_cb(response.error);

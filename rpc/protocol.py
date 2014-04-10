@@ -108,7 +108,7 @@ def validate_response(response):
                     'Invalid key {} in response error {}'.format(k, e),
                     msgid)
     elif 'result' in response:
-        check(not('result' in response), errors.ServerError,
+        check(not('error' in response), errors.ServerError,
               'response {} contains both error and result'.format(
                   response), msgid)
     else:
@@ -135,7 +135,7 @@ def decode_request(request, validate=True):
 def encode_error(error):
     r = dict(
         jsonrpc='2.0',
-        error=dict(error=error.code, message=error.message, id=error.msgid))
+        error=dict(error=error.code, message=error.message), id=error.msgid)
     if hasattr(error, 'data'):
         r['error']['data'] = error['data']
     return r
@@ -144,16 +144,21 @@ def encode_error(error):
 # TODO make this batch compatible
 def encode_response(response, validate=True):
     if isinstance(response, errors.RPCError):
+        print("encoding error {}".format(response))
         return encode_response(encode_error(response), validate=validate)
     if validate:
         try:
+            print("validating response {}".format(response))
             validate_response(response)
+            print("valid")
         except errors.RPCError as e:
-            return encode_response(
-                encode_error(e), validate=validate)
+            print("invalid, sending error {}".format(e))
+            return encode_response(e, validate=validate)
     try:
+        print("dumping to json")
         return json.dumps(response)
     except Exception as e:
+        print("Error dumping to json {}".format(e))
         return encode_response(errors.ServerError(repr(e)), validate=validate)
 
 
@@ -162,11 +167,22 @@ def encode_response(response, validate=True):
 def process_request(request, obj, validate=True):
     try:
         req = decode_request(request, validate=validate)
+        print("decoded {}".format(req))
     except errors.RPCError as e:
+        print("decode error {}".format(e))
         return encode_response(e, validate=validate)
+    msgid = req.get('id', None)
     try:
-        f = reduce(getattr, request['method'].split('.'), obj)
-        res = f(request['params'])
+        f = reduce(getattr, req['method'].split('.'), obj)
+        print("calling {} with {}".format(f, req['params']))
+        res = f(*tuple(req['params']))
+        print("called {}".format(res))
     except Exception as e:
-        return errors.ServerError(repr(e), req['id'])
-    return encode_response(res, validate=validate)
+        print("call error {}".format(e))
+        return encode_response(
+            errors.ServerError(repr(e), msgid), validate=validate)
+    if msgid is None:
+        return  # notification, don't return
+    print("returning {}".format(res))
+    return encode_response(dict(
+        jsonrpc='2.0', result=res, id=msgid), validate=validate)

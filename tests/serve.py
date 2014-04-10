@@ -10,6 +10,8 @@ from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 import pizco
 
+import rpc
+
 app = flask.Flask(__name__)
 app.debug = True
 sockets = flask_sockets.Sockets(app)
@@ -51,6 +53,7 @@ class Node(object):
         self.config_changed = pizco.Signal()
 
     def config(self, config=None, replace=False):
+        print("{} {} {}".format(self._config, config, replace))
         if config is None:
             return self._config
         if replace:
@@ -63,6 +66,8 @@ class Node(object):
 
     def future(self):
         return Future()
+
+proxy = Node()
 
 
 @app.route('/')
@@ -100,17 +105,14 @@ def connect_proxy(ws):
     while not ws.closed:
         gevent.sleep(0.001)
         m = ws.receive()
-        print(m)
-        if ws.closed or m is None:
-            break
-        # process request with rpc
-        # handle events, functions, attributes, etc...
-        r = rpc.process(m)
-        p = json.loads(m)
-        print(r)
-        r = fix_types(r)
-        print(r)
-        ws.send(json.dumps(r))
+        print('message received {}'.format(m))
+        r = rpc.process_request(m, proxy)
+        print('result(1) {}'.format(r))
+        ws.send(r)
+        print('sleeping')
+        gevent.sleep(0.1)
+        print('result(2) {}'.format(r))
+        ws.send(r)
 
 
 if __name__ == '__main__':

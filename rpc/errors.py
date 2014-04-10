@@ -22,11 +22,11 @@ class RPCError(Exception):
         self.msgid = msgid
 
     def __str__(self):
-        return '{}:{}'.format(self.message, self.code)
+        return '{}:{}:'.format(self.message, self.code, self.msgid)
 
     def __repr__(self):
-        return '{}({},{})'.format(
-            self.__class__.__name__, self.message, self.code)
+        return '{}({}:{}:{})'.format(
+            self.__class__.__name__, self.message, self.code, self.msgid)
 
 
 class ParseError(RPCError):
