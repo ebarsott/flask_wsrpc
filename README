@@ -66,3 +66,7 @@ reg signal  -> register for signal in greenlet
 process     <- process changed event
 process     <- process changed event
          many ...
+
+if an object is blocking (say camera) Is it ok to just continue to block?
+I think so, this makes websocket timeout? (seems to be ok with longer polling)
+Perhaps futures could be handled differently

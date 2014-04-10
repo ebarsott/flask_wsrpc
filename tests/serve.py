@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import copy
-import json
+import time
 
+import concurrent.futures
 import flask
 import flask_sockets
 import gevent
@@ -31,19 +32,9 @@ def add_dicts(a, b, modify=False):
     return a
 
 
-class Future(object):
-    def __init__(self):
-        self._done = False
-
-    def done(self):
-        if not self._done:
-            self._done = True
-            return False
-        else:
-            self._done = False
-            return True
-
-    # TODO add_done_callback?
+def wait():
+    time.sleep(3)
+    return "awake"
 
 
 class Node(object):
@@ -51,6 +42,7 @@ class Node(object):
         self._config = {}
 
         self.config_changed = pizco.Signal()
+        self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
     def config(self, config=None, replace=False):
         print("{} {} {}".format(self._config, config, replace))
@@ -65,7 +57,7 @@ class Node(object):
         return self._config
 
     def future(self):
-        return Future()
+        return self._pool.submit(wait)
 
 proxy = Node()
 
@@ -102,17 +94,10 @@ def fix_types(r):
 @sockets.route('/proxy')
 def connect_proxy(ws):
     print('websocket connected {}'.format(ws))
+    handler = rpc.wrapper.JSONRPC(proxy, ws)
     while not ws.closed:
         gevent.sleep(0.001)
-        m = ws.receive()
-        print('message received {}'.format(m))
-        r = rpc.process_request(m, proxy)
-        print('result(1) {}'.format(r))
-        ws.send(r)
-        print('sleeping')
-        gevent.sleep(0.1)
-        print('result(2) {}'.format(r))
-        ws.send(r)
+        handler.update()
 
 
 if __name__ == '__main__':

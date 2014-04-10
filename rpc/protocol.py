@@ -38,6 +38,8 @@ error codes (negative):
 
 import json
 
+import concurrent.futures
+
 from . import errors
 
 
@@ -165,6 +167,9 @@ def encode_response(response, validate=True):
 # TODO make this batch compatible
 # TODO break this apart to make attaching signals & futures easier?
 def process_request(request, obj, validate=True):
+    """
+    This is quite broken up in rpc.wrapper
+    """
     try:
         req = decode_request(request, validate=validate)
         print("decoded {}".format(req))
@@ -174,6 +179,7 @@ def process_request(request, obj, validate=True):
     msgid = req.get('id', None)
     try:
         f = reduce(getattr, req['method'].split('.'), obj)
+        # TODO handle signals
         print("calling {} with {}".format(f, req['params']))
         res = f(*tuple(req['params']))
         print("called {}".format(res))
@@ -183,6 +189,17 @@ def process_request(request, obj, validate=True):
             errors.ServerError(repr(e), msgid), validate=validate)
     if msgid is None:
         return  # notification, don't return
-    print("returning {}".format(res))
-    return encode_response(dict(
-        jsonrpc='2.0', result=res, id=msgid), validate=validate)
+    # check to see if res is a future, if so, attach callback
+    if isinstance(res, concurrent.futures.Future):
+        def cb(f):
+            return encode_response(dict(
+                jsonrpc='2.0', result=f.result(), id=msgid), validate=validate)
+        res.add_done_callback(cb)
+        future = {'future': {'id': msgid}}
+        print("returning future {}".format(future))
+        return encode_response(dict(
+            jsonrpc='2.0', result=future, id=msgid), validate=validate)
+    else:
+        print("returning {}".format(res))
+        return encode_response(dict(
+            jsonrpc='2.0', result=res, id=msgid), validate=validate)
