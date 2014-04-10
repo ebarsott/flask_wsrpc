@@ -8,18 +8,19 @@
     </head>
     <body>
         <script type="text/javascript">
-            var s = {};
-            var m = {};
+            var socket = {};
+            var last_result = {};
+            var last_error = {};
+            var ecb = function(e) {
+                last_error = e;
+                console.log({error: e});
+            };
+            var rcb = function(r) {
+                last_result = r;
+                console.log({result: r});
+            };
             $(function() {
-                /*
-                s = new WebSocket('ws://127.0.0.1:5000/proxy');
-                s.onmessage = function(message) {
-                    m = message;
-                    console.log(m.data);
-                };
-                window.setTimeout(function() {s.send(JSON.stringify({'inspect': {}}));}, 300);
-                 */
-                s = new $.JsonRpcClient({'socketUrl': 'ws://127.0.0.1:5000/proxy'});
+                socket = new $.JsonRpcClient({'socketUrl': 'ws://127.0.0.1:5000/proxy'});
             });
         </script>
     </body>

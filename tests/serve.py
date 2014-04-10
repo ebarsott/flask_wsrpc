@@ -53,7 +53,7 @@ class Node(object):
         else:
             self._config = add_dicts(self._config, config, modify=False)
         # TODO override, so no (new, old, other)
-        self.config_changed.emit(self._config, None, None)
+        self.config_changed.emit(self._config)
         return self._config
 
     def future(self):
@@ -100,8 +100,12 @@ def connect_proxy(ws):
         handler.update()
 
 
-if __name__ == '__main__':
+def run():
     # start background thread serving pizco events
     # this requires knowing which 'signals' to connect to
     server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
     server.serve_forever()
+
+
+if __name__ == '__main__':
+    run()

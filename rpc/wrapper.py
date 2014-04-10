@@ -61,10 +61,18 @@ class JSONRPC(object):
                 obj = self._i
                 method = m['method']
             if (method == 'connect') and is_signal(obj):
+                if m['id'] is None:
+                    return self._send(errors.ServerError(
+                        'message id required for signal connection', m['id']))
+
                 # generate a callback and attach it to the signal
                 def cb(*args):
+                    print('signal callback {} with {}'.format(m['id'], args))
                     self._send(
                         {'jsonrpc': '2.0', 'result': args, 'id': m['id']})
+                    print('signal callback done')
+                print('connecting to signal {} with id {}'.format(
+                    m['method'], m['id']))
                 obj.connect(cb)
                 # register this callback (and slot) with _signals
                 self._signals[m['id']] = cb
@@ -72,18 +80,20 @@ class JSONRPC(object):
             elif (method == 'disconnect') and is_signal(obj):
                 # find the callback and remove it
                 # params should be id to remove
-                if len(m['params']) != 1:
-                    self._send(errors.ServerError(
+                if len(m['params']) != 1:  # TODO instead disconnect all?
+                    return self._send(errors.ServerError(
                         'Invalid params {} expected 1 length array'.format(
                             m['params']), m['id']))
                 cbid = m['params'][0]
+                print('disconnecting from signal {} with id {}'.format(
+                    m['method'], cbid))
                 cb = self._signals[cbid]
-                print 'before', obj.slots
+                #print 'before', obj.slots
                 obj.disconnect(cb)
-                print 'after', obj.slots
+                #print 'after', obj.slots
                 del self._signals[cbid]
-                # return success ?
-                return dict(jsonrpc='2.0', result=None, id=m['id'])
+                # TODO return success ?
+                res = dict(jsonrpc='2.0', result=None, id=m['id'])
             else:
                 res = getattr(obj, method)(*m['params'])
         except Exception as e:
@@ -97,7 +107,7 @@ class JSONRPC(object):
         # check to see if res is a future, if so, attach callback
         if isinstance(res, concurrent.futures.Future):
             def cb(f):
-                return self._send(dict(
+                self._send(dict(
                     jsonrpc='2.0', result=f.result(), id=m['id']))
             res.add_done_callback(cb)
             future = {'future': {'id': m['id']}}

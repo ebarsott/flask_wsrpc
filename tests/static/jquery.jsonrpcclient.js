@@ -166,6 +166,7 @@
    * @return {object} Returns the deferred object that $.ajax returns or {null} if websockets are used
    */
   $.JsonRpcClient.prototype.notify = function(method, params) {
+    alert("notify doesn't yet support signals, futures, etc");
     // Construct the JSON-RPC 2.0 request.
     var request = {
       jsonrpc: '2.0',
