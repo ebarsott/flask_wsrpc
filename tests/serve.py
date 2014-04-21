@@ -45,7 +45,7 @@ class Node(object):
         self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
     def config(self, config=None, replace=False):
-        print("{} {} {}".format(self._config, config, replace))
+        print("config {} {} {}".format(self._config, config, replace))
         if config is None:
             return self._config
         if replace:
@@ -57,6 +57,9 @@ class Node(object):
 
     def future(self):
         return self._pool.submit(wait)
+
+    def dosomething(self, a):
+        print("doing stuff with {}".format(a))
 
 proxy = Node()
 

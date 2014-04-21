@@ -79,6 +79,7 @@ class JSONRPC(object):
                 obj.connect(cb)
                 # register this callback (and slot) with _signals
                 self._signals[m['id']] = cb
+                # TODO should the first message be the messageid?
                 return dict(jsonrpc='2.0', result=m['id'], id=m['id'])
             elif (method == 'disconnect') and is_signal(obj):
                 # find the callback and remove it

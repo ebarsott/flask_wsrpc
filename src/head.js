@@ -1,3 +1,3 @@
-var pizco = {};
-(function(pizco){
-    pizco.version = "0.0.1";
+var rpcobj = {};
+(function(rpcobj){
+    rpcobj.version = "0.0.1";

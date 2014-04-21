@@ -1,0 +1,2 @@
+rpcobj.rpcobj = function () {
+};

@@ -1,1 +1,1 @@
-})(pizco);
+})(rpcobj);
