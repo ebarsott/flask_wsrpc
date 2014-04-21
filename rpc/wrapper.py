@@ -66,10 +66,13 @@ class JSONRPC(object):
                         'message id required for signal connection', m['id']))
 
                 # generate a callback and attach it to the signal
-                def cb(*args):
+                def cb(*args, **kwargs):
+                    # TODO modify args and kwargs to match the function
+                    # spec stored in the signal
                     print('signal callback {} with {}'.format(m['id'], args))
                     self._send(
-                        {'jsonrpc': '2.0', 'result': args, 'id': m['id']})
+                        {'jsonrpc': '2.0', 'result': (args, kwargs),
+                         'id': m['id']})
                     print('signal callback done')
                 print('connecting to signal {} with id {}'.format(
                     m['method'], m['id']))

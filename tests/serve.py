@@ -41,7 +41,7 @@ class Node(object):
     def __init__(self):
         self._config = {}
 
-        self.config_changed = pizco.Signal()
+        self.config_changed = pizco.Signal(nargs=1)
         self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
     def config(self, config=None, replace=False):
@@ -52,7 +52,6 @@ class Node(object):
             self._config = config
         else:
             self._config = add_dicts(self._config, config, modify=False)
-        # TODO override, so no (new, old, other)
         self.config_changed.emit(self._config)
         return self._config
 
