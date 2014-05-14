@@ -2,15 +2,16 @@
     <head>
     <script src="{{url_for('static', filename='jquery-2.1.0.js')}}" type="text/javascript"></script>
     <script src="{{url_for('static', filename='jquery.json-2.4.js')}}" type="text/javascript"></script>
-    <script src="{{url_for('static', filename='socket.io.js')}}" type="text/javascript"></script>
-    <script src="{{url_for('static', filename='pickle.js')}}" type="text/javascript"></script>
     <script src="{{url_for('static', filename='jquery.jsonrpcclient.js')}}" type="text/javascript"></script>
+    <script src="{{url_for('static', filename='jquery.jsoneditor.js')}}" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static', filename='jsoneditor.css')}}" />
     </head>
     <body>
         <script type="text/javascript">
             var socket = {};
             var last_result = {};
             var last_error = {};
+            var cbid = null;
             var ecb = function(e) {
                 last_error = e;
                 console.log({error: e});
@@ -21,7 +22,31 @@
             };
             $(function() {
                 socket = new $.JsonRpcClient({'socketUrl': 'ws://127.0.0.1:5000/proxy'});
+                // connect config to ui
+                opt = {
+                    change: function (cfg) {
+                        socket.call('config', [cfg], rcb, ecb);
+                        },
+                    };
+                config = socket.call(
+                    'config', [],
+                    function(r) {
+                        $("#editor").jsonEditor(r, opt);
+                    }, ecb);
+                cbid = socket.call(
+                    'config_changed.connect', [],
+                    function(r) {
+                        if (r == cbid) {
+                            return;
+                        };
+                        console.log("New config received, updating editor");
+                        console.log(r);
+                        $("#editor").jsonEditor(r[0][0], opt);
+                    }, ecb, true);
+                // TODO connect functions to buttons
             });
         </script>
+        <div id="editor" class="json-editor">
+        </div>
     </body>
 </html>

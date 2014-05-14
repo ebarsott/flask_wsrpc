@@ -1,7 +1,6 @@
 JS_FILES = \
 		src/head.js \
-		src/protocol.js \
-		src/proxy.js \
+		src/rpcobj.js \
 		src/tail.js
 
 JS_COMPILER = \

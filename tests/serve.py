@@ -41,23 +41,25 @@ class Node(object):
     def __init__(self):
         self._config = {}
 
-        self.config_changed = pizco.Signal()
+        self.config_changed = pizco.Signal(nargs=1)
         self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
     def config(self, config=None, replace=False):
-        print("{} {} {}".format(self._config, config, replace))
+        print("config {} {} {}".format(self._config, config, replace))
         if config is None:
             return self._config
         if replace:
             self._config = config
         else:
             self._config = add_dicts(self._config, config, modify=False)
-        # TODO override, so no (new, old, other)
         self.config_changed.emit(self._config)
         return self._config
 
     def future(self):
         return self._pool.submit(wait)
+
+    def dosomething(self, a):
+        print("doing stuff with {}".format(a))
 
 proxy = Node()
 
