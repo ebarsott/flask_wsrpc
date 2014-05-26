@@ -43,6 +43,10 @@ import concurrent.futures
 from . import errors
 
 
+encoder = json.JSONEncoder
+decoder = json.JSONDecoder
+
+
 def check(b, e, m, msgid=None, c=None):
     if not b:
         if c is None:
@@ -126,7 +130,7 @@ def validate_response(response):
 # TODO make this batch compatible
 def decode_request(request, validate=True):
     try:
-        req = json.loads(request)
+        req = json.loads(request, cls=decoder)
     except Exception as e:
         raise errors.ParseError(repr(e))
     if validate:  # TODO handle validation errors
@@ -158,7 +162,7 @@ def encode_response(response, validate=True):
             return encode_response(e, validate=validate)
     try:
         print("dumping to json")
-        return json.dumps(response)
+        return json.dumps(response, cls=encoder)
     except Exception as e:
         print("Error dumping to json {}".format(e))
         return encode_response(errors.ServerError(repr(e)), validate=validate)
