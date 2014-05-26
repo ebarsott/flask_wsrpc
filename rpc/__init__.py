@@ -40,6 +40,7 @@ error codes (negative):
 from . import errors
 from . import protocol
 from . import wrapper
+from . import serve
 from .protocol import process_request
 
-__all__ = ['errors', 'protocol', 'wrapper', 'process_request']
+__all__ = ['errors', 'protocol', 'wrapper', 'serve', 'process_request']
