@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
 Wrap an object with a json-rpc (v2) compatible interface
+
+TODO have handler delete callbacks on __del__
 """
 
 import concurrent.futures
@@ -21,6 +23,20 @@ def is_signal_message(m, o):
     if ('.' not in m['method']) and (not is_signal(o)):
         return False
     return is_signal(reduce(getattr, m['method'].split('.')[:-1], o))
+
+
+def package_signal_result(signal, args, kwargs):
+    has_args = (signal._varargs or signal._nargs)
+    has_kwargs = (signal._varkwargs or len(signal._kwargs))
+    if not (has_args or has_kwargs):
+        return []
+    if not has_args:
+        return kwargs
+    if signal._varargs is False and signal._nargs == 1:
+        args = args[0]
+    if not has_kwargs:
+        return args
+    return args, kwargs
 
 
 class JSONRPC(object):
@@ -76,9 +92,17 @@ class JSONRPC(object):
                     # TODO modify args and kwargs to match the function
                     # spec stored in the signal
                     print('signal callback {} with {}'.format(m['id'], args))
-                    self._send(
-                        {'jsonrpc': '2.0', 'result': (args, kwargs),
-                         'id': m['id']})
+                    try:
+                        self._send(
+                            {'jsonrpc': '2.0',
+                             'result': package_signal_result(
+                                 obj, args, kwargs),
+                             'id': m['id']})
+                    except Exception as e:
+                        try:
+                            self._send(e, m['id'])
+                        except Exception:
+                            pass
                     print('signal callback done')
                 print('connecting to signal {} with id {}'.format(
                     m['method'], m['id']))
@@ -86,7 +110,8 @@ class JSONRPC(object):
                 # register this callback (and slot) with _signals
                 self._signals[m['id']] = cb
                 # TODO should the first message be the messageid?
-                return dict(jsonrpc='2.0', result=m['id'], id=m['id'])
+                #return dict(jsonrpc='2.0', result=m['id'], id=m['id'])
+                return None
             elif (method == 'disconnect') and is_signal(obj):
                 # find the callback and remove it
                 # params should be id to remove
