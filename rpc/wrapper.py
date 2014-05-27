@@ -40,8 +40,8 @@ class JSONRPC(object):
                     "Invalid socket {}, {} is not callable".format(socket, a))
         self._socket = socket
         self._signals = {}
-        self.encoder = None
-        self.decoder = None
+        self.encoder = encoder
+        self.decoder = decoder
 
     def _receive(self):
         m = self._socket.receive()
