@@ -24,7 +24,8 @@ def is_signal_message(m, o):
 
 
 class JSONRPC(object):
-    def __init__(self, instance, socket, validate=True):
+    def __init__(
+            self, instance, socket, validate=True, encoder=None, decoder=None):
         """
         futures : list of functions that return a future object
         """
@@ -39,11 +40,14 @@ class JSONRPC(object):
                     "Invalid socket {}, {} is not callable".format(socket, a))
         self._socket = socket
         self._signals = {}
+        self.encoder = None
+        self.decoder = None
 
     def _receive(self):
         m = self._socket.receive()
         try:
-            dm = protocol.decode_request(m, validate=self._v)
+            dm = protocol.decode_request(
+                m, validate=self._v, decoder=self.decoder)
             print("decoded {}".format(dm))
         except errors.RPCError as e:
             print("decode error {}".format(e))
@@ -125,7 +129,8 @@ class JSONRPC(object):
         if m is None:
             return
         # error handling?
-        em = protocol.encode_response(m, validate=self._v)
+        em = protocol.encode_response(
+            m, validate=self._v, encoder=self.encoder)
         self._socket.send(em)
 
     def update(self):

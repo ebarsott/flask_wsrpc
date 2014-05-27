@@ -43,8 +43,8 @@ import concurrent.futures
 from . import errors
 
 
-encoder = json.JSONEncoder
-decoder = json.JSONDecoder
+default_encoder = json.JSONEncoder
+default_decoder = json.JSONDecoder
 
 
 def check(b, e, m, msgid=None, c=None):
@@ -128,7 +128,9 @@ def validate_response(response):
 
 
 # TODO make this batch compatible
-def decode_request(request, validate=True):
+def decode_request(request, validate=True, decoder=None):
+    if decoder is None:
+        decoder = default_decoder
     try:
         req = json.loads(request, cls=decoder)
     except Exception as e:
@@ -148,10 +150,11 @@ def encode_error(error):
 
 
 # TODO make this batch compatible
-def encode_response(response, validate=True):
+def encode_response(response, validate=True, encoder=None):
     if isinstance(response, errors.RPCError):
         print("encoding error {}".format(response))
-        return encode_response(encode_error(response), validate=validate)
+        return encode_response(
+            encode_error(response), validate=validate, encoder=encoder)
     if validate:
         try:
             print("validating response {}".format(response))
@@ -159,27 +162,30 @@ def encode_response(response, validate=True):
             print("valid")
         except errors.RPCError as e:
             print("invalid, sending error {}".format(e))
-            return encode_response(e, validate=validate)
+            return encode_response(e, validate=validate, encoder=encoder)
+    if encoder is None:
+        encoder = default_encoder
     try:
         print("dumping to json")
         return json.dumps(response, cls=encoder)
     except Exception as e:
         print("Error dumping to json {}".format(e))
-        return encode_response(errors.ServerError(repr(e)), validate=validate)
+        return encode_response(
+            errors.ServerError(repr(e)), validate=validate, encoder=encoder)
 
 
 # TODO make this batch compatible
 # TODO break this apart to make attaching signals & futures easier?
-def process_request(request, obj, validate=True):
+def process_request(request, obj, validate=True, encoder=None, decoder=None):
     """
     This is quite broken up in rpc.wrapper
     """
     try:
-        req = decode_request(request, validate=validate)
+        req = decode_request(request, validate=validate, decoder=decoder)
         print("decoded {}".format(req))
     except errors.RPCError as e:
         print("decode error {}".format(e))
-        return encode_response(e, validate=validate)
+        return encode_response(e, validate=validate, encoder=encoder)
     msgid = req.get('id', None)
     try:
         f = reduce(getattr, req['method'].split('.'), obj)
@@ -190,20 +196,24 @@ def process_request(request, obj, validate=True):
     except Exception as e:
         print("call error {}".format(e))
         return encode_response(
-            errors.ServerError(repr(e), msgid), validate=validate)
+            errors.ServerError(repr(e), msgid), validate=validate,
+            encoder=encoder)
     if msgid is None:
         return  # notification, don't return
     # check to see if res is a future, if so, attach callback
     if isinstance(res, concurrent.futures.Future):
         def cb(f):
             return encode_response(dict(
-                jsonrpc='2.0', result=f.result(), id=msgid), validate=validate)
+                jsonrpc='2.0', result=f.result(), id=msgid), validate=validate,
+                encoder=encoder)
         res.add_done_callback(cb)
         future = {'future': {'id': msgid}}
         print("returning future {}".format(future))
         return encode_response(dict(
-            jsonrpc='2.0', result=future, id=msgid), validate=validate)
+            jsonrpc='2.0', result=future, id=msgid), validate=validate,
+            encoder=encoder)
     else:
         print("returning {}".format(res))
         return encode_response(dict(
-            jsonrpc='2.0', result=res, id=msgid), validate=validate)
+            jsonrpc='2.0', result=res, id=msgid), validate=validate,
+            encoder=encoder)
