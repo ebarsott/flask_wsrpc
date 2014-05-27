@@ -45,6 +45,8 @@ class JSONRPC(object):
 
     def _receive(self):
         m = self._socket.receive()
+        if m is None:  # this is a disconnect
+            return m
         try:
             dm = protocol.decode_request(
                 m, validate=self._v, decoder=self.decoder)
@@ -134,4 +136,8 @@ class JSONRPC(object):
         self._socket.send(em)
 
     def update(self):
-        self._send(self._process(self._receive()))
+        r = self._receive()
+        print("received r: {}".format(r))
+        if r is None:  # websocket disconnected
+            return
+        self._send(self._process(r))
