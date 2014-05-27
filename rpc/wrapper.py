@@ -130,7 +130,7 @@ class JSONRPC(object):
                 # TODO return success ?
                 res = dict(jsonrpc='2.0', result=None, id=m['id'])
             else:
-                res = getattr(obj, method)(*m['params'])
+                res = getattr(obj, method)(*m.get('params', ()))
         except Exception as e:
             print("call error {}".format(e))
             if m['id'] is None:
