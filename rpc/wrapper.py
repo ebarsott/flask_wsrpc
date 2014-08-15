@@ -26,6 +26,7 @@ def is_signal_message(m, o):
 
 
 def package_signal_result(signal, args, kwargs):
+    # this does not work through a pizco Proxy as _... attributes are hidden
     has_args = (signal._varargs or signal._nargs)
     has_kwargs = (signal._varkwargs or len(signal._kwargs))
     if not (has_args or has_kwargs):
@@ -95,13 +96,13 @@ class JSONRPC(object):
                     try:
                         self._send(
                             {'jsonrpc': '2.0',
-                             'result': package_signal_result(
-                                 obj, args, kwargs),
+                             'result': (args, kwargs),
                              'id': m['id']})
                     except Exception as e:
                         try:
-                            self._send(e, m['id'])
-                        except Exception:
+                            self._send(errors.ServerError(
+                                str(e), m['id']))
+                        except Exception as e:
                             pass
                     print('signal callback done')
                 print('connecting to signal {} with id {}'.format(
