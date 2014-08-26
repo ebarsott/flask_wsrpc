@@ -1,4 +1,4 @@
 flask
-flask_sockets
-gevent
+#flask_sockets
+#gevent
 futures
