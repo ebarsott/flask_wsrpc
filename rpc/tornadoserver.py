@@ -79,4 +79,6 @@ def serve(default_route=True):
     print(items)
     application = tornado.web.Application(items)
     application.listen(5000)
-    IOLoop.instance().start()
+    loop = IOLoop.instance()
+    if not loop.running():
+        loop.start()
