@@ -43,7 +43,7 @@ from . import errors
 from . import protocol
 from . import wrapper
 
-if os.environ.get('RPC_USE_GEVENT', False):
+if os.environ.get('WSRPC_USE_GEVENT', False):
     from . import geventserver as serve
 else:
     from . import tornadoserver as serve
