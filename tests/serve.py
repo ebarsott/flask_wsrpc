@@ -11,7 +11,7 @@ from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 import pizco
 
-import rpc
+import wsrpc
 
 app = flask.Flask(__name__)
 app.debug = True
@@ -96,7 +96,7 @@ def fix_types(r):
 @sockets.route('/proxy')
 def connect_proxy(ws):
     print('websocket connected {}'.format(ws))
-    handler = rpc.wrapper.JSONRPC(proxy, ws)
+    handler = wsrpc.wrapper.JSONRPC(proxy, ws)
     while not ws.closed:
         gevent.sleep(0.001)
         handler.update()

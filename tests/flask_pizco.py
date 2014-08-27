@@ -2,8 +2,8 @@
 
 import pizco
 
-import rpc
+import wsrpc
 
 proxy = pizco.Proxy('ipc:///tmp/pizcojs_test_rep')
-rpc.serve.register(proxy)
-rpc.serve.serve()
+wsrpc.serve.register(proxy)
+wsrpc.serve.serve()
