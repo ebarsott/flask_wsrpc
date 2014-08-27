@@ -37,10 +37,17 @@ error codes (negative):
     -32000 to -32099 Server error
 """
 
+import os
+
 from . import errors
 from . import protocol
 from . import wrapper
-from . import tornadoserver as serve
+
+if os.environ.get('RPC_USE_GEVENT', False):
+    from . import geventserver as serve
+else:
+    from . import tornadoserver as serve
+
 from .protocol import process_request
 
 __all__ = ['errors', 'protocol', 'wrapper', 'serve', 'process_request']
