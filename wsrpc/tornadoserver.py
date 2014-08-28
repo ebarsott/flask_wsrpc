@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import inspect
+import logging
 import os
 
 import flask
@@ -14,6 +15,8 @@ import tornado.wsgi
 
 from . import wrapper
 
+
+logger = logging.getLogger(__name__)
 
 module_directory = os.path.dirname(inspect.getfile(inspect.currentframe()))
 static_directory = os.path.join(module_directory, 'static')
@@ -29,31 +32,31 @@ obj_dict = {}
 
 class ObjectHandler(WebSocketHandler):
     def initialize(self, obj=None, **kwargs):
-        print("Initialized {}".format(obj))
+        logger.debug("Initialized {}".format(obj))
         self.obj = obj
         # needs receive and send
         self.handler = wrapper.JSONRPC(obj, self, **kwargs)
         self.message = None
-        print("done initialize")
+        logger.debug("done initialize")
 
     def receive(self):
-        print("receive")
+        logger.debug("receive")
         return self.message
 
     def open(self):
-        print("Web socket opened")
+        logger.debug("Web socket opened")
 
     def on_close(self):
-        print("Web socket closed")
+        logger.debug("Web socket closed")
 
     def on_message(self, message):
-        print("Received message {}".format(message))
+        logger.debug("Received message {}".format(message))
         self.message = message
         self.handler.update()
         self.message = None
 
     def send(self, message):
-        print("Sending message {}".format(message))
+        logger.debug("Sending message {}".format(message))
         self.write_message(message)
 
 
@@ -76,7 +79,7 @@ def serve(default_route=True):
     for k in obj_dict:
         items.append(('/{}'.format(k), ObjectHandler, obj_dict[k]))
     items += [('.*', tornado.web.FallbackHandler, {'fallback': wsgi_app}), ]
-    print(items)
+    logger.debug("Serving items: {}".format(items))
     application = tornado.web.Application(items)
     application.listen(5000)
     loop = IOLoop.instance()
