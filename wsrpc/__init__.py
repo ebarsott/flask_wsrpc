@@ -50,6 +50,6 @@ else:
 
 from .protocol import process_request
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 __all__ = ['errors', 'protocol', 'wrapper', 'serve', 'process_request']
