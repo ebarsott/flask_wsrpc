@@ -58,6 +58,7 @@ class ObjectHandler(WebSocketHandler):
     def send(self, message):
         logger.debug("Sending message {}".format(message))
         self.write_message(message)
+        logger.debug("Message written {}".format(message))
 
 
 def register(obj, url=None, **kwargs):
