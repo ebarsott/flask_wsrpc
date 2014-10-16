@@ -72,9 +72,9 @@ class JSONRPC(object):
         try:
             dm = protocol.decode_request(
                 m, validate=self._v, decoder=self.decoder)
-            logging.debug("decoded {}".format(dm))
+            logger.debug("decoded {}".format(dm))
         except errors.RPCError as e:
-            logging.error("decode error {}".format(e), exc_info=e)
+            logger.error("decode error {}".format(e), exc_info=e)
             self._send(e)
             return None
         dm['id'] = dm.get('id', None)  # if there is no id, set to None
@@ -97,7 +97,7 @@ class JSONRPC(object):
                 def cb(*args, **kwargs):
                     # TODO modify args and kwargs to match the function
                     # spec stored in the signal
-                    logging.debug(
+                    logger.debug(
                         'signal callback {} with {}'.format(m['id'], args))
                     try:
                         self._send(
@@ -110,8 +110,8 @@ class JSONRPC(object):
                                 str(e), m['id']))
                         except Exception as e:
                             pass
-                    logging.debug('signal callback done')
-                logging.debug('connecting to signal {} with id {}'.format(
+                    logger.debug('signal callback done')
+                logger.debug('connecting to signal {} with id {}'.format(
                     m['method'], m['id']))
                 obj.connect(cb)
                 # register this callback (and slot) with _signals
@@ -127,7 +127,7 @@ class JSONRPC(object):
                         'Invalid params {} expected 1 length array'.format(
                             m['params']), m['id']))
                 cbid = m['params'][0]
-                logging.debug('disconnecting from signal {} with id {}'.format(
+                logger.debug('disconnecting from signal {} with id {}'.format(
                     m['method'], cbid))
                 cb = self._signals[cbid]
                 #print 'before', obj.slots
@@ -139,7 +139,7 @@ class JSONRPC(object):
             else:
                 res = getattr(obj, method)(*m.get('params', ()))
         except Exception as e:
-            logging.error("call error {}".format(e), exc_info=e)
+            logger.error("call error {}".format(e), exc_info=e)
             if m['id'] is None:
                 return None  # notification
             self._send(errors.ServerError(repr(e), m['id']))
@@ -153,10 +153,10 @@ class JSONRPC(object):
                     jsonrpc='2.0', result=f.result(), id=m['id']))
             res.add_done_callback(cb)
             future = {'future': {'id': m['id']}}
-            logging.debug("returning future {}".format(future))
+            logger.debug("returning future {}".format(future))
             return dict(jsonrpc='2.0', result=future, id=m['id'])
         else:
-            logging.debug("returning {}".format(res))
+            logger.debug("returning {}".format(res))
             return dict(jsonrpc='2.0', result=res, id=m['id'])
 
     def _send(self, m):
@@ -169,7 +169,7 @@ class JSONRPC(object):
 
     def update(self):
         r = self._receive()
-        logging.debug("received r: {}".format(r))
+        logger.debug("received r: {}".format(r))
         if r is None:  # websocket disconnected
             return
         self._send(self._process(r))
