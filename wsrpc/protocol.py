@@ -37,11 +37,13 @@ error codes (negative):
 """
 
 import json
+import logging
 
 import concurrent.futures
 
 from . import errors
 
+logger = logging.getLogger(__name__)
 
 default_encoder = json.JSONEncoder
 default_decoder = json.JSONDecoder
@@ -152,24 +154,24 @@ def encode_error(error):
 # TODO make this batch compatible
 def encode_response(response, validate=True, encoder=None):
     if isinstance(response, errors.RPCError):
-        print("encoding error {}".format(response))
+        logger.debug("encoding error {}".format(response))
         return encode_response(
             encode_error(response), validate=validate, encoder=encoder)
     if validate:
         try:
-            print("validating response {}".format(response))
+            logger.debug("validating response {}".format(response))
             validate_response(response)
-            print("valid")
+            logger.debug("valid")
         except errors.RPCError as e:
-            print("invalid, sending error {}".format(e))
+            logger.error("invalid, sending error {}".format(e), exc_info=e)
             return encode_response(e, validate=validate, encoder=encoder)
     if encoder is None:
         encoder = default_encoder
     try:
-        print("dumping to json")
+        logger.debug("dumping to json")
         return json.dumps(response, cls=encoder)
     except Exception as e:
-        print("Error dumping to json {}".format(e))
+        logger.error("Error dumping to json {}".format(e), exc_info=e)
         return encode_response(
             errors.ServerError(repr(e)), validate=validate, encoder=encoder)
 
@@ -182,19 +184,19 @@ def process_request(request, obj, validate=True, encoder=None, decoder=None):
     """
     try:
         req = decode_request(request, validate=validate, decoder=decoder)
-        print("decoded {}".format(req))
+        logger.debug("decoded {}".format(req))
     except errors.RPCError as e:
-        print("decode error {}".format(e))
+        logger.error("decode error {}".format(e), exc_info=e)
         return encode_response(e, validate=validate, encoder=encoder)
     msgid = req.get('id', None)
     try:
         f = reduce(getattr, req['method'].split('.'), obj)
         # TODO handle signals
-        print("calling {} with {}".format(f, req['params']))
+        logger.debug("calling {} with {}".format(f, req['params']))
         res = f(*tuple(req['params']))
-        print("called {}".format(res))
+        logger.debug("called {}".format(res))
     except Exception as e:
-        print("call error {}".format(e))
+        logger.error("call error {}".format(e), exc_info=e)
         return encode_response(
             errors.ServerError(repr(e), msgid), validate=validate,
             encoder=encoder)
@@ -208,12 +210,12 @@ def process_request(request, obj, validate=True, encoder=None, decoder=None):
                 encoder=encoder)
         res.add_done_callback(cb)
         future = {'future': {'id': msgid}}
-        print("returning future {}".format(future))
+        logger.debug("returning future {}".format(future))
         return encode_response(dict(
             jsonrpc='2.0', result=future, id=msgid), validate=validate,
             encoder=encoder)
     else:
-        print("returning {}".format(res))
+        logger.debug("returning {}".format(res))
         return encode_response(dict(
             jsonrpc='2.0', result=res, id=msgid), validate=validate,
             encoder=encoder)
