@@ -83,13 +83,8 @@ def serve(default_route=True):
     for k in obj_dict:
         items.append(('/{}'.format(k), ObjectHandler, obj_dict[k]))
     items += [('.*', tornado.web.FallbackHandler, {'fallback': wsgi_app}), ]
-<<<<<<< HEAD
-    print(items)
-    application = tornado.web.Application(items, debug=server.debug)
-=======
     logger.debug("Serving items: {}".format(items))
-    application = tornado.web.Application(items)
->>>>>>> 1813aba069565a24a17c0869cfdddd9fc02a9d2a
+    application = tornado.web.Application(items, debug=server.debug)
     application.listen(5000)
     loop = IOLoop.instance()
     if not loop._running:
