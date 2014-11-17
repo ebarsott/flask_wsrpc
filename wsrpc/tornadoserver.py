@@ -31,6 +31,7 @@ class ObjectHandler(WebSocketHandler):
     def initialize(self, obj=None, **kwargs):
         print("Initialized {}".format(obj))
         self.obj = obj
+        self.loop = IOLoop.instance()
         # needs receive and send
         self.handler = wrapper.JSONRPC(obj, self, **kwargs)
         self.message = None
@@ -54,7 +55,8 @@ class ObjectHandler(WebSocketHandler):
 
     def send(self, message):
         print("Sending message {}".format(message))
-        self.write_message(message)
+        # write_message must be called from ioloop
+        self.loop.add_callback(self.write_message, message)
 
 
 def register(obj, url=None, **kwargs):
@@ -77,7 +79,7 @@ def serve(default_route=True):
         items.append(('/{}'.format(k), ObjectHandler, obj_dict[k]))
     items += [('.*', tornado.web.FallbackHandler, {'fallback': wsgi_app}), ]
     print(items)
-    application = tornado.web.Application(items)
+    application = tornado.web.Application(items, debug=server.debug)
     application.listen(5000)
     loop = IOLoop.instance()
     if not loop._running:
