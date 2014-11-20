@@ -58,7 +58,7 @@ class ObjectHandler(WebSocketHandler):
 
     def send(self, message):
         logger.debug("Sending message {}".format(message))
-        self.write_message(message)
+        #self.write_message(message)
         # write_message must be called from ioloop
         self.loop.add_callback(self.write_message, message)
         logger.debug("Message written {}".format(message))
