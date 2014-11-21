@@ -49,6 +49,8 @@ class ObjectHandler(WebSocketHandler):
 
     def on_close(self):
         logger.debug("Web socket closed")
+        # disconnect all signals
+        self.handler.disconnect()
 
     def on_message(self, message):
         logger.debug("Received message {}".format(message))

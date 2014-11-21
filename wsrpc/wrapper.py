@@ -83,9 +83,11 @@ class JSONRPC(object):
     def _process(self, m):
         try:
             if '.' in m['method']:
-                obj = reduce(getattr, m['method'].split('.')[:-1], self._i)
+                keys = m['method'].split('.')[:-1]
+                obj = reduce(getattr, keys, self._i)
                 method = m['method'].split('.')[-1]
             else:
+                keys = []
                 obj = self._i
                 method = m['method']
             if (method == 'connect') and is_signal(obj):
@@ -115,7 +117,8 @@ class JSONRPC(object):
                     m['method'], m['id']))
                 obj.connect(cb)
                 # register this callback (and slot) with _signals
-                self._signals[m['id']] = cb
+                self._signals[m['id']] = ('.'.join(keys), cb)
+                #self._signals[m['id']] = cb
                 # TODO should the first message be the messageid?
                 #return dict(jsonrpc='2.0', result=m['id'], id=m['id'])
                 return None
@@ -129,7 +132,7 @@ class JSONRPC(object):
                 cbid = m['params'][0]
                 logger.debug('disconnecting from signal {} with id {}'.format(
                     m['method'], cbid))
-                cb = self._signals[cbid]
+                _, cb = self._signals[cbid]
                 #print 'before', obj.slots
                 obj.disconnect(cb)
                 #print 'after', obj.slots
@@ -173,3 +176,13 @@ class JSONRPC(object):
         if r is None:  # websocket disconnected
             return
         self._send(self._process(r))
+
+    def disconnect(self):
+        """Disconnect all signals"""
+        for cbid in self._signals:
+            n, cb = self._signals[cbid]
+            if n == '':
+                obj = self._i
+            else:
+                obj = reduce(getattr, n.split('.'), self._i)
+            obj.disconnect(cb)
