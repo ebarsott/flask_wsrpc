@@ -26,6 +26,9 @@ def register(obj, url=None):
     if url is None:
         url = '/ws'
 
+    if not hasattr(obj, '__wsrpc__'):
+        obj.__wsrpc__ = lambda o=obj: wrapper.build_function_spec(o)
+
     @sockets.route(url)
     def websocket(ws):
         handler = wrapper.JSONRPC(obj, ws)

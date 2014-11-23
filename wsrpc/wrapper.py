@@ -5,6 +5,7 @@ Wrap an object with a json-rpc (v2) compatible interface
 TODO have handler delete callbacks on __del__
 """
 
+import inspect
 import logging
 
 import concurrent.futures
@@ -14,6 +15,26 @@ from . import protocol
 
 
 logger = logging.getLogger(__name__)
+
+
+def build_function_spec(o, prefix=None, s=None):
+    if prefix is None:
+        prefix = ''
+    if s is None:
+        s = {}
+    for k in dir(o):
+        if k[0] == '_':
+            continue
+        n = prefix + k
+        a = getattr(o, k)
+        if inspect.ismethod(a):
+            arg_spec = inspect.getargspec(a)
+            s[n] = arg_spec.args
+        elif hasattr(a, '__init__'):
+            ss = build_function_spec(a, k + '.')
+            if len(ss):
+                s.update(ss)
+    return s
 
 
 def is_signal(o):

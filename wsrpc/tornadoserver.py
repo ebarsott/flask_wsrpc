@@ -17,6 +17,8 @@ from . import wrapper
 
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.DEBUG)
 
 module_directory = os.path.dirname(inspect.getfile(inspect.currentframe()))
 static_directory = os.path.join(module_directory, 'static')
@@ -71,6 +73,8 @@ def register(obj, url=None, **kwargs):
         url = 'ws'
     if kwargs is None:
         kwargs = {}
+    if not hasattr(obj, '__wsrpc__'):
+        obj.__wsrpc__ = lambda o=obj: wrapper.build_function_spec(o)
     kwargs['obj'] = obj
     obj_dict[url] = kwargs
 

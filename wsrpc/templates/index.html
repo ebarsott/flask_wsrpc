@@ -3,10 +3,12 @@
     <script src="{{url_for('static', filename='js/jquery-2.1.0.js')}}" type="text/javascript"></script>
     <script src="{{url_for('static', filename='js/jquery.json-2.4.js')}}" type="text/javascript"></script>
     <script src="{{url_for('static', filename='js/jquery.jsonrpcclient.js')}}" type="text/javascript"></script>
+    <script src="{{url_for('static', filename='js/bluebird.js')}}" type="text/javascript"></script>
+    <script src="{{url_for('static', filename='js/rpcobject.js')}}" type="text/javascript"></script>
     </head>
     <body>
         <script type="text/javascript">
-            var socket = {};
+            var obj = {};
             var last_result = {};
             var last_error = {};
             var ecb = function(e) {
@@ -18,7 +20,7 @@
                 console.log({result: r});
             };
             $(function() {
-                socket = new $.JsonRpcClient({'socketUrl': 'ws://127.0.0.1:5000/ws'});
+                obj = new RPCObject();
             });
         </script>
     </body>
