@@ -5,23 +5,15 @@ RPCObject = function (ws_url) {
     var instance = {};
     instance._ws_url = ws_url;
 
-    instance._on_error = function (e) {
-        // override this
-    };
-
-    instance._on_result = function (r) {
-        // override this
-    };
-
     instance._build = function (functions) {
-        console.log({'build': functions});
+        // console.log({'build': functions});
         for (f in functions) {
-            console.log({f: [typeof(f), f]});
+            // console.log({f: [typeof(f), f]});
             func = function (fn) {
                 return function () {
                     args = Array.prototype.slice.call(arguments);
                     return new Promise(function (resolve, reject) {
-                        console.log({fn: args});
+                        // console.log({fn: args});
                         instance._socket.call(fn, args, resolve, reject);
                     });
                 };
@@ -50,7 +42,7 @@ RPCObject = function (ws_url) {
         } else {
             url = 'ws://' + window.location.host + '/' + instance._ws_url + '/ws';
         };
-        console.log({'connect': url});
+        // console.log({'connect': url});
         instance._socket = new $.JsonRpcClient({'socketUrl': url});
         //instance._socket.call('__wsrpc__', [], function (r) { instance._build(r); }, instance._on_error);
         instance._socket.call('__wsrpc__', [], instance._build, instance._on_error);
