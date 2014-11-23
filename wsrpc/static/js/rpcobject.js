@@ -8,6 +8,24 @@ RPCObject = function (ws_url) {
     instance._build = function (functions) {
         // console.log({'build': functions});
         for (f in functions) {
+            name = "";
+            o = undefined;
+            if (f.indexOf('.')) {
+                str = f.split('.');
+                o = instance;
+                while (str.length > 1) {
+                    n = str.shift();
+                    if (o[n] == undefined) {
+                        o[n] = {};
+                    };
+                    o = o[n];
+                };
+                name = str.shift();
+            } else {
+                name = f;
+                o = instance;
+            };
+ 
             // console.log({f: [typeof(f), f]});
             func = function (fn) {
                 return function () {
@@ -19,21 +37,10 @@ RPCObject = function (ws_url) {
                 };
             }(f);
 
-            if (f.indexOf('.')) {
-                str = f.split('.');
-                o = instance;
-                while (str.length > 1) {
-                    n = str.shift();
-                    if (o[n] == undefined) {
-                        o[n] = {};
-                    };
-                    o = o[n];
-                };
-                o[str.shift()] = func;
-            } else {
-                instance[f] = func;
-            };
-        };
+            // TODO handle signals?
+            o[name] = func;
+       };
+        $(instance).trigger('wsrpc_built');
     };
 
     instance._connect = function () {
@@ -48,6 +55,7 @@ RPCObject = function (ws_url) {
         instance._socket.call('__wsrpc__', [], instance._build, instance._on_error);
         //instance._socket.call('__wsrpc__', [],
         //    function (r) { console.log({'r': r}); instance._build(r) }, instance._on_error);
+        $(instance).trigger('wsrpc_connected');
     };
 
     instance._connect();

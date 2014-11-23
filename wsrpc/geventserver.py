@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import inspect
+import logging
 import os
 
 import flask
@@ -11,6 +12,7 @@ from geventwebsocket.handler import WebSocketHandler
 
 from . import wrapper
 
+logger = logging.getLogger(__name__)
 
 module_directory = os.path.dirname(inspect.getfile(inspect.currentframe()))
 static_directory = os.path.join(module_directory, 'static')
@@ -27,7 +29,12 @@ def register(obj, url=None):
         url = '/ws'
 
     if not hasattr(obj, '__wsrpc__'):
-        obj.__wsrpc__ = lambda o=obj: wrapper.build_function_spec(o)
+        try:
+            s = wrapper.build_function_spec(obj)
+            obj.__wsrpc__ = lambda spec=s: s
+        except Exception as e:
+            logger.error(
+                "Failed to build function spec for object %s with %s", obj, e)
 
     @sockets.route(url)
     def websocket(ws):

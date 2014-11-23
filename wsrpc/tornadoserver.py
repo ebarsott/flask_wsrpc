@@ -74,7 +74,12 @@ def register(obj, url=None, **kwargs):
     if kwargs is None:
         kwargs = {}
     if not hasattr(obj, '__wsrpc__'):
-        obj.__wsrpc__ = lambda o=obj: wrapper.build_function_spec(o)
+        try:
+            s = wrapper.build_function_spec(obj)
+            obj.__wsrpc__ = lambda spec=s: s
+        except Exception as e:
+            logger.error(
+                "Failed to build function spec for object %s with %s", obj, e)
     kwargs['obj'] = obj
     obj_dict[url] = kwargs
 
