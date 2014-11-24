@@ -43,6 +43,6 @@ from .protocol import process_request
 from . import wrapper
 from . import serve
 
-__version__ = '0.0.2'
+__version__ = '0.1.0'
 
 __all__ = ['errors', 'protocol', 'wrapper', 'serve', 'process_request']
