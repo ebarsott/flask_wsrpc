@@ -17,8 +17,11 @@ from . import wrapper
 
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.DEBUG)
+
+
+def debug():
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.DEBUG)
 
 module_directory = os.path.dirname(inspect.getfile(inspect.currentframe()))
 static_directory = os.path.join(module_directory, 'static')
