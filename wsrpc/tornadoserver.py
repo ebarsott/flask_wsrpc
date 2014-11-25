@@ -87,7 +87,9 @@ def register(obj, url=None, **kwargs):
     obj_dict[url] = kwargs
 
 
-def serve(default_route=True):
+def serve(address=None, default_route=True):
+    if address is None:
+        address = ""
     if default_route:
         @server.route('/')
         def default():
@@ -99,7 +101,7 @@ def serve(default_route=True):
     items += [('.*', tornado.web.FallbackHandler, {'fallback': wsgi_app}), ]
     logger.debug("Serving items: {}".format(items))
     application = tornado.web.Application(items, debug=server.debug)
-    application.listen(5000)
+    application.listen(5000, address=address)
     loop = IOLoop.instance()
     if not loop._running:
         loop.start()

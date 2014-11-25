@@ -44,7 +44,7 @@ def register(obj, url=None):
             handler.update()
 
 
-def serve(default_route=True):
+def serve(address=None, default_route=True):
     if default_route:
         @server.route('/')
         def default():
