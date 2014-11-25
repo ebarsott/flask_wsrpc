@@ -45,10 +45,12 @@ def register(obj, url=None):
 
 
 def serve(address=None, default_route=True):
+    if address is None:
+        address = ''
     if default_route:
         @server.route('/')
         def default():
             return flask.render_template('index.html')
     wsgi_server = pywsgi.WSGIServer(
-        ('', 5000), server, handler_class=WebSocketHandler)
+        (address, 5000), server, handler_class=WebSocketHandler)
     wsgi_server.serve_forever()
