@@ -7,6 +7,7 @@ TODO have handler delete callbacks on __del__
 
 import inspect
 import logging
+import types
 
 import concurrent.futures
 
@@ -15,6 +16,14 @@ from . import protocol
 
 
 logger = logging.getLogger(__name__)
+
+
+def is_custom_object(a):
+    if not hasattr(a, '__init__'):
+        return False
+    if type(a).__module__ == '__builtin__':
+        return False
+    return True
 
 
 def build_function_spec(o, prefix=None, s=None):
@@ -30,7 +39,7 @@ def build_function_spec(o, prefix=None, s=None):
         if inspect.ismethod(a):
             arg_spec = inspect.getargspec(a)
             s[n] = arg_spec.args
-        elif hasattr(a, '__init__'):
+        elif is_custom_object(a):
             ss = build_function_spec(a, k + '.')
             if len(ss):
                 s.update(ss)
