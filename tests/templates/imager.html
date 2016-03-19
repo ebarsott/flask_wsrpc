@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+    <head>
+        <script src="{{url_for('static', filename='js/jquery-2.1.0.js')}}" type="text/javascript"></script>
+        <script src="{{url_for('static', filename='js/jquery.json-2.4.js')}}" type="text/javascript"></script>
+        <script src="{{url_for('static', filename='js/jquery.jsonrpcclient.js')}}" type="text/javascript"></script>
+        <script src="{{url_for(name + '.static', filename='d3.js')}}" charset="utf-8"></script>
+    </head>
+    <script type="text/javascript">
+        var imager = {};
+        imager.socket = null;
+        imager.image_index = 0;
+        imager.images = [];
+        imager.error_callback = function (e) {
+            console.log({'error': e});
+            imager.last_error = e;
+        };
+        imager.result_callback = function (r) {
+            console.log({'result': r});
+            imager.last_result = r;
+        };
+        imager.call = function(fn, args, rcb, ecb, persist) {
+            rcb = (rcb === undefined) ? imager.result_callback : rcb;
+            ecb = (ecb === undefined) ? imager.error_callback : ecb;
+            args = (args === undefined) ? [] : args;
+            persist = (persist === undefined) ? false: persist;
+            imager.socket.call(fn, args, rcb, ecb, persist);
+        };
+        imager.image_callback = function (i) {
+            imager.last_image = i;
+            idata = "data:image/png;base64, " + i;
+            $("#frame").attr("src", idata);
+            image = {
+                'src': idata,
+                'index': imager.image_index,
+            }
+            imager.image_index += 1;
+            imager.images.push(image);
+            while (imager.images.length > 3) {
+                imager.images.shift();
+            };
+            imager.update_display(imager.images);
+            window.setTimeout(imager.grab, 1000);
+        };
+
+        imager.grab = function () {
+            imager.call('next_image', [], imager.image_callback);
+        };
+
+        imager.attach = function () {
+            imager.svg = d3.select("#d3div").append("svg");
+            imager.canvas = imager.svg.append('g');
+        };
+
+        imager.update_display = function (images) {
+            s = imager.canvas.selectAll('image').data(images);
+            s.enter().append('image')
+                .attr('x', function (d) { return d.index; })
+                .attr('y', function (d) { return 0; })
+                .attr('width', function (d) { return 64; })
+                .attr('height', function (d) { return 64; })
+                .attr('xlink:href', function (d) { return d.src; });
+
+            s.attr('x', function (d) { return d.index; })
+                .attr('y', function (d) { return 0; })
+                .attr('width', function (d) { return 64; })
+                .attr('height', function (d) { return 64; })
+                .attr('xlink:href', function (d) { return d.src; });
+
+            s.exit().remove()
+        };
+        $(function () {
+            if (imager.socket === null) {
+                imager.socket = new $.JsonRpcClient(
+                    {'socketUrl': 'ws://' + window.location.host + '/imager/ws'});
+                imager.attach();
+                window.setTimeout(imager.grab, 1000);
+            };
+        });
+    </script>
+    <body>
+        <button id="grab" onclick="imager.grab();">Grab</button><br />
+        <img name="frame" id="frame"></img><br />
+        <div id="d3div"></div>
+    </body>
+</head>
+
