@@ -38,7 +38,13 @@ def build_function_spec(o, prefix=None, s=None):
         a = getattr(o, k)
         if inspect.ismethod(a):
             arg_spec = inspect.getargspec(a)
-            s[n] = arg_spec.args
+            s[n] = {
+                'args': arg_spec.args,
+                'defaults': arg_spec.defaults,
+                'varargs': arg_spec.varargs,
+                'keywords': arg_spec.keywords,
+            }
+            # s[n] = arg_spec.args
         elif is_custom_object(a):
             ss = build_function_spec(a, k + '.')
             if len(ss):
