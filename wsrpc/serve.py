@@ -2,15 +2,10 @@
 """
 """
 
-import os
-
 import flask
 
 
-if os.environ.get('WSRPC_USE_GEVENT', False):
-    from . import geventserver as server
-else:
-    from . import tornadoserver as server
+from . import tornadoserver as server
 
 
 def rename(name):
@@ -66,6 +61,6 @@ def register(spec):
     server.server.register_blueprint(bp)
 
 
-def serve(address=None, default_route=True, debug=True):
+def serve(address=None, default_route=True, debug=True, port=5000):
     server.server.debug = debug
-    server.serve(address, default_route)
+    server.serve(address, default_route, port)

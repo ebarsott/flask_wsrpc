@@ -1,7 +1,5 @@
 By default this will try to use tornado
 
-To use gevent, set the environment variable: WSRPC_USE_GEVENT
-
 
 
 Make a web interface to a pizco served object (possibly many objects?)

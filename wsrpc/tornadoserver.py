@@ -87,13 +87,13 @@ def register(obj, url=None, **kwargs):
     obj_dict[url] = kwargs
 
 
-def serve(address=None, default_route=True):
+def serve(address=None, default_route=True, port=5000):
     if address is None:
         address = ""
     if default_route:
         @server.route('/')
         def default():
-            return flask.render_template('index.html')
+            return flask.redirect(default_route)
     wsgi_app = tornado.wsgi.WSGIContainer(server)
     items = []
     for k in obj_dict:
@@ -101,7 +101,8 @@ def serve(address=None, default_route=True):
     items += [('.*', tornado.web.FallbackHandler, {'fallback': wsgi_app}), ]
     logger.debug("Serving items: {}".format(items))
     application = tornado.web.Application(items, debug=server.debug)
-    application.listen(5000, address=address)
+    application.listen(port, address=address)
+    logger.info("Serving on address %s, port %s" % (address, port))
     loop = IOLoop.instance()
     if not loop._running:
         loop.start()
