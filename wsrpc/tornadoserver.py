@@ -87,10 +87,24 @@ def register(obj, url=None, **kwargs):
     obj_dict[url] = kwargs
 
 
-def serve(address=None, default_route=True, port=5000):
+def render_help():
+    # return links for all registered objects
+    page = "<html><head></head><body>"
+    for n in server.blueprints:
+        page += "<a href='/%s/'>%s</a><br />" % (
+            n, n)
+    page += "</body></html>"
+    return page
+
+
+def serve(address=None, default_route=None, port=5000):
     if address is None:
         address = ""
-    if default_route:
+    if default_route is None:
+        @server.route('/')
+        def default():
+            return render_help()
+    else:
         @server.route('/')
         def default():
             return flask.redirect(default_route)
@@ -98,6 +112,10 @@ def serve(address=None, default_route=True, port=5000):
     items = []
     for k in obj_dict:
         items.append(('/{}'.format(k), ObjectHandler, obj_dict[k]))
+    if 'help' not in k:
+        @server.route('/help')
+        def help():
+            return render_help()
     items += [('.*', tornado.web.FallbackHandler, {'fallback': wsgi_app}), ]
     logger.debug("Serving items: {}".format(items))
     application = tornado.web.Application(items, debug=server.debug)
