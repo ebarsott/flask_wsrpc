@@ -61,6 +61,6 @@ def register(spec):
     server.server.register_blueprint(bp)
 
 
-def serve(address=None, default_route=True, debug=True, port=5000):
+def serve(address=None, default_route=None, debug=True, port=5000):
     server.server.debug = debug
     server.serve(address, default_route, port)
