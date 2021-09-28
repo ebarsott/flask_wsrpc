@@ -10,7 +10,7 @@ from . import tornadoserver as server
 
 def rename(name):
     def wrap(func):
-        func.func_name = name
+        func.__name__ = name
         return func
     return wrap
 

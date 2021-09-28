@@ -13,6 +13,7 @@ import concurrent.futures
 
 from . import errors
 from . import protocol
+from functools import reduce
 
 
 logger = logging.getLogger(__name__)

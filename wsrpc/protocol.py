@@ -42,6 +42,7 @@ import logging
 import concurrent.futures
 
 from . import errors
+from functools import reduce
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ def check(b, e, m, msgid=None, c=None):
 # TODO make this batch compatible
 def validate_request(request):
     if 'id' in request:
-        check(isinstance(request['id'], (int, str, unicode, type(None))),
+        check(isinstance(request['id'], (int, str, type(None))),
               errors.InvalidRequest, 'invalid id type {}'.format(
                   type(request['id'])), None)
     msgid = request.get('id', None)
@@ -72,7 +73,7 @@ def validate_request(request):
         'received non v2.0 [{}] request'.format(request['jsonrpc']), msgid)
     check('method' in request, errors.InvalidRequest,
           'request {} missing method'.format(request), msgid)
-    check(isinstance(request['method'], (str, unicode)),
+    check(isinstance(request['method'], str),
           errors.InvalidRequest,
           'request method {} is not a str'.format(request['method']), msgid)
     for k in request:
@@ -86,7 +87,7 @@ def validate_request(request):
 def validate_response(response):
     check('id' in response, errors.ServerError,
           'response {} missing id'.format(response), None)
-    check(isinstance(response['id'], (int, str, unicode, type(None))),
+    check(isinstance(response['id'], (int, str, type(None))),
           errors.ServerError,
           'invalid id type {}'.format(type(response['id'])), None)
     msgid = response['id']
@@ -108,7 +109,7 @@ def validate_response(response):
               'response error {} is not an int'.format(e['error']), msgid)
         check('message' in e, errors.ServerError,
               'response error {} missing message'.format(e), msgid)
-        check(isinstance(e['message'], (str, unicode)), errors.ServerError,
+        check(isinstance(e['message'], str), errors.ServerError,
               'response error {} is not a str'.format(e['message']), msgid)
         for k in e:
             if k not in ['error', 'message', 'data']:
