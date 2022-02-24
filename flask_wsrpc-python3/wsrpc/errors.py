@@ -56,9 +56,9 @@ class InternalError(RPCError):
 
 class ServerError(RPCError):
     def __init__(self, message, msgid=None, code=-32000):
-        self.message=[] #Elizabeth: trying to initialize message
         if code > -32000 or code < -32099:
             raise ValueError(
                 "Invalid ServerError code {} must be "
                 "[-32099, -32000]".format(code))
+            self.message = ValueError
         RPCError.__init__(self, message, code, msgid)

@@ -1,0 +1,229 @@
+#!/usr/bin/env python
+"""
+Wrap an object with a json-rpc (v2) compatible interface
+
+TODO have handler delete callbacks on __del__
+"""
+
+import inspect
+import logging
+import types
+
+import concurrent.futures
+
+from . import errors
+from . import protocol
+from functools import reduce
+
+
+logger = logging.getLogger(__name__)
+
+
+def is_custom_object(a):
+    if not hasattr(a, '__init__'):
+        return False
+    if type(a).__module__ == '__builtin__':
+        return False
+    return True
+
+
+def build_function_spec(o, prefix=None, s=None):
+    if prefix is None:
+        prefix = ''
+    if s is None:
+        s = {}
+    for k in dir(o):
+        if k[0] == '_':
+            continue
+        n = prefix + k
+        a = getattr(o, k)
+        if inspect.ismethod(a):
+            arg_spec = inspect.getargspec(a)
+            s[n] = {
+                'args': arg_spec.args,
+                'defaults': arg_spec.defaults,
+                'varargs': arg_spec.varargs,
+                'keywords': arg_spec.keywords,
+            }
+            # s[n] = arg_spec.args
+        elif is_custom_object(a):
+            ss = build_function_spec(a, k + '.')
+            if len(ss):
+                s.update(ss)
+    return s
+
+
+def is_signal(o):
+    return (
+        hasattr(o, 'connect') and
+        hasattr(o, 'disconnect') and
+        hasattr(o, 'emit')
+    )
+
+
+def is_signal_message(m, o):
+    if ('.' not in m['method']) and (not is_signal(o)):
+        return False
+    return is_signal(reduce(getattr, m['method'].split('.')[:-1], o))
+
+
+def package_signal_result(signal, args, kwargs):
+    # this does not work through a pizco Proxy as _... attributes are hidden
+    has_args = (signal._varargs or signal._nargs)
+    has_kwargs = (signal._varkwargs or len(signal._kwargs))
+    if not (has_args or has_kwargs):
+        return []
+    if not has_args:
+        return kwargs
+    if signal._varargs is False and signal._nargs == 1:
+        args = args[0]
+    if not has_kwargs:
+        return args
+    return args, kwargs
+
+
+class JSONRPC(object):
+    def __init__(
+            self, instance, socket, validate=True, encoder=None, decoder=None):
+        """
+        futures : list of functions that return a future object
+        """
+        self._i = instance
+        self._v = validate
+        for a in ['send', 'receive']:
+            if (not hasattr(socket, a)):
+                raise AttributeError(
+                    "Invalid socket {} does not have {}".format(socket, a))
+            if (not callable(getattr(socket, a))):
+                raise AttributeError(
+                    "Invalid socket {}, {} is not callable".format(socket, a))
+        self._socket = socket
+        self._signals = {}
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def _receive(self):
+        m = self._socket.receive()
+        if m is None:  # this is a disconnect
+            return m
+        try:
+            dm = protocol.decode_request(
+                m, validate=self._v, decoder=self.decoder)
+            logger.debug("decoded {}".format(dm))
+        except errors.RPCError as e:
+            logger.error("decode error {}".format(e), exc_info=e)
+            self._send(e)
+            return None
+        dm['id'] = dm.get('id', None)  # if there is no id, set to None
+        return dm
+
+    def _process(self, m):
+        try:
+            if '.' in m['method']:
+                keys = m['method'].split('.')[:-1]
+                obj = reduce(getattr, keys, self._i)
+                method = m['method'].split('.')[-1]
+            else:
+                keys = []
+                obj = self._i
+                method = m['method']
+            if (method == 'connect') and is_signal(obj):
+                if m['id'] is None:
+                    return self._send(errors.ServerError(
+                        'message id required for signal connection', m['id']))
+
+                # generate a callback and attach it to the signal
+                def cb(*args, **kwargs):
+                    # TODO modify args and kwargs to match the function
+                    # spec stored in the signal
+                    logger.debug(
+                        'signal callback {} with {}'.format(m['id'], args))
+                    try:
+                        self._send(
+                            {'jsonrpc': '2.0',
+                             'result': (args, kwargs),
+                             'id': m['id']})
+                    except Exception as e:
+                        try:
+                            self._send(errors.ServerError(
+                                str(e), m['id']))
+                        except Exception as e:
+                            pass
+                    logger.debug('signal callback done')
+                logger.debug('connecting to signal {} with id {}'.format(
+                    m['method'], m['id']))
+                obj.connect(cb)
+                # register this callback (and slot) with _signals
+                self._signals[m['id']] = ('.'.join(keys), cb)
+                #self._signals[m['id']] = cb
+                # TODO should the first message be the messageid?
+                #return dict(jsonrpc='2.0', result=m['id'], id=m['id'])
+                return None
+            elif (method == 'disconnect') and is_signal(obj):
+                # find the callback and remove it
+                # params should be id to remove
+                if len(m['params']) != 1:  # TODO instead disconnect all?
+                    return self._send(errors.ServerError(
+                        'Invalid params {} expected 1 length array'.format(
+                            m['params']), m['id']))
+                cbid = m['params'][0]
+                logger.debug('disconnecting from signal {} with id {}'.format(
+                    m['method'], cbid))
+                _, cb = self._signals[cbid]
+                #print 'before', obj.slots
+                obj.disconnect(cb)
+                #print 'after', obj.slots
+                del self._signals[cbid]
+                # TODO return success ?
+                res = dict(jsonrpc='2.0', result=None, id=m['id'])
+            else:
+                a = getattr(obj, method)
+                if callable(a):
+                    res = a(*m.get('params', ()))
+                else:
+                    res = a
+        except Exception as e:
+            logger.error("call error {}".format(e), exc_info=e)
+            if m['id'] is None:
+                return None  # notification
+            self._send(errors.ServerError(repr(e), m['id']))
+            return None
+        if m['id'] is None:
+            return None  # notification
+        # check to see if res is a future, if so, attach callback
+        if isinstance(res, concurrent.futures.Future):
+            def cb(f):
+                self._send(dict(
+                    jsonrpc='2.0', result=f.result(), id=m['id']))
+            res.add_done_callback(cb)
+            future = {'future': {'id': m['id']}}
+            logger.debug("returning future {}".format(future))
+            return dict(jsonrpc='2.0', result=future, id=m['id'])
+        else:
+            logger.debug("returning {}".format(res))
+            return dict(jsonrpc='2.0', result=res, id=m['id'])
+
+    def _send(self, m):
+        if m is None:
+            return
+        # error handling?
+        em = protocol.encode_response(
+            m, validate=self._v, encoder=self.encoder)
+        self._socket.send(em)
+
+    def update(self):
+        r = self._receive()
+        logger.debug("received r: {}".format(r))
+        if r is None:  # websocket disconnected
+            return
+        self._send(self._process(r))
+
+    def disconnect(self):
+        """Disconnect all signals"""
+        for cbid in self._signals:
+            n, cb = self._signals[cbid]
+            if n == '':
+                obj = self._i
+            else:
+                obj = reduce(getattr, n.split('.'), self._i)
+            obj.disconnect(cb)

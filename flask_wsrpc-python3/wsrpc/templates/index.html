@@ -1,0 +1,27 @@
+<html>
+    <head>
+    <script src="{{url_for('static', filename='js/jquery-2.1.0.js')}}" type="text/javascript"></script>
+    <script src="{{url_for('static', filename='js/jquery.json-2.4.js')}}" type="text/javascript"></script>
+    <script src="{{url_for('static', filename='js/jquery.jsonrpcclient.js')}}" type="text/javascript"></script>
+    <script src="{{url_for('static', filename='js/bluebird.js')}}" type="text/javascript"></script>
+    <script src="{{url_for('static', filename='js/rpcobject.js')}}" type="text/javascript"></script>
+    </head>
+    <body>
+        <script type="text/javascript">
+            var obj = {};
+            var last_result = {};
+            var last_error = {};
+            var ecb = function(e) {
+                last_error = e;
+                console.log({error: e});
+            };
+            var rcb = function(r) {
+                last_result = r;
+                console.log({result: r});
+            };
+            $(function() {
+                obj = new RPCObject();
+            });
+        </script>
+    </body>
+</html>
