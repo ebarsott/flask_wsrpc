@@ -1,0 +1,15 @@
+MANIFEST.in
+README
+requirements.txt
+setup.py
+wsrpc/__init__.py
+wsrpc/errors.py
+wsrpc/protocol.py
+wsrpc/serve.py
+wsrpc/tornadoserver.py
+wsrpc/wrapper.py
+wsrpc.egg-info/PKG-INFO
+wsrpc.egg-info/SOURCES.txt
+wsrpc.egg-info/dependency_links.txt
+wsrpc.egg-info/requires.txt
+wsrpc.egg-info/top_level.txt

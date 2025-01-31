@@ -18,8 +18,6 @@ error codes (negative):
 class RPCError(Exception):
     def __init__(self, message, code, msgid=None):
         Exception.__init__(self, message)
-# braingram commit 80463d5 for python3 future exception handling
-        self.message = message
         self.code = code
         self.msgid = msgid
 
@@ -58,7 +56,7 @@ class InternalError(RPCError):
 
 class ServerError(RPCError):
     def __init__(self, message, msgid=None, code=-32000):
-#        self.message=[] #Elizabeth: trying to initialize message
+        self.message=[] #Elizabeth: trying to initialize message
         if code > -32000 or code < -32099:
             raise ValueError(
                 "Invalid ServerError code {} must be "

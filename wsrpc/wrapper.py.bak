@@ -193,15 +193,8 @@ class JSONRPC(object):
         # check to see if res is a future, if so, attach callback
         if isinstance(res, concurrent.futures.Future):
             def cb(f):
-# braingram commit 3066d66 for python3 future exception handling
-#                self._send(dict(
-#                    jsonrpc='2.0', result=f.result(), id=m['id']))
-                exception = f.exception()
-                if exception:
-                    self._send(errors.ServerError(repr(exception), m['id']))
-                else:
-                    self._send(dict(
-                        jsonrpc='2.0', result=f.result(), id=m['id']))
+                self._send(dict(
+                    jsonrpc='2.0', result=f.result(), id=m['id']))
             res.add_done_callback(cb)
             future = {'future': {'id': m['id']}}
             logger.debug("returning future {}".format(future))
